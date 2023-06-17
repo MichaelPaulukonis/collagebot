@@ -1,8 +1,5 @@
 this.focus();
 
-let totalArt = 0;
-let t = 0;
-
 let defaultSize = {
   width: 800,
   height: 800,
@@ -11,6 +8,7 @@ let backgroundImage;
 let backgroundColor;
 let backgroundMode;
 let elementImages = [];
+let transparentImages = [];
 let items = [];
 let namer;
 let modes = [];
@@ -22,14 +20,15 @@ const backgroundModes = {
   Image: "image",
 };
 const itemModes = {
+  Mixed: 'mixed',
   Random: "random",
   Center: "center",
   Tinted: 'tinted',
+  Circle: 'circle',
   Masked: 'masked'
 };
-let itemMode = itemModes.Center;
+let itemMode = itemModes.Mixed;
 
-// this function will load all media before setup()
 function preload() {
   for (let i = 0; i <= 13; i++) {
     let fname = `./assets/backgrounds/background.${i.toString().padStart(5, "0")}.jpeg`;
@@ -41,10 +40,15 @@ function preload() {
   // alternatively (since this takes a while)
   // do a callback
   for (let i = 0; i <= 14; i++) {
-    // let fname = `assets/transparent/${i.toString().padStart(6, "0")}.png`; // also the ones in images (non-transparent)
     let fname = `assets/menus/${i.toString().padStart(6, "0")}.jpg`;
     elementImages[i] = loadImage(fname);
   }
+
+  for (let i = 0; i <= 30; i++) {
+    let fname = `assets/transparent/${i.toString().padStart(6, "0")}.png`; // also the ones in images (non-transparent)
+    transparentImages[i] = loadImage(fname);
+  }
+
 }
 
 function setup() {
@@ -81,6 +85,7 @@ function setup() {
   ];
 
   // loading screen
+  // oh, wait. this won't work. Each non-preload loadImage is asynchronous
   // createCanvas(defaultSize.width, defaultSize.height);
   // background('bisque')
   // textAlign(CENTER)
@@ -146,14 +151,34 @@ function makeCollage() {
   // BUT the blend mode was the same for all of the same image?
   items = [];
   for (let i = 0; i < totalItems; i++) {
-    items.push(
-      // itemMode === itemModes.Center ? new ItemCentered() : new ItemRandomImage()
-      // new ItemTinted()
-      new ItemMasked()
-    );
+    items.push(getItem(itemMode));
   }
 
   items.forEach((item) => item.display());
+}
+
+const getItem = (itemMode) => {
+  const mode = (itemMode === itemModes.Mixed)
+    ? random(Object.values(itemModes))
+    : itemMode
+
+  switch (mode) {
+    case itemModes.Center:
+      return new ItemCentered()
+
+    case itemModes.Tinted:
+      return new ItemTinted()
+
+    case itemModes.Circle:
+      return new ItemCircle()
+
+    case itemModes.Masked:
+      return new ItemMasked()
+
+    case itemModes.Random:
+    default:
+      return new ItemRandomImage()
+  }
 }
 
 function keyPressed() {
@@ -187,78 +212,3 @@ const resize = (imgWidth, imgHeight, maxWidth) => ({
   w: maxWidth,
   h: (maxWidth / imgWidth) * imgHeight,
 });
-
-class ItemCore {
-  constructor(image) {
-    this.image = image;
-    this.size = resize(this.image.width, this.image.height, random(40, 512));
-    this.x = random(-(this.size.w / 2), width - 40);
-    this.y = random(-(this.size.h / 2), height - 40);
-    this.mode = random(modes);
-  }
-
-  predisplay() {
-    // over-ridden
-  }
-
-  postdisplay() {
-    // over-ridden
-  }
-
-  display() {
-    this.predisplay()
-    blendMode(this.mode);
-    image(this.image, this.x, this.y, this.size.w, this.size.h);
-    this.postdisplay()
-  }
-}
-
-class ItemRandomImage extends ItemCore {
-  // It's all random :person-shrugging:
-  constructor() {
-    super(random(elementImages));
-  }
-}
-
-class ItemCentered extends ItemRandomImage {
-  // everything is centered
-  constructor() {
-    super();
-    this.x = width / 2 - this.size.w / 2;
-    this.y = height / 2 - this.size.h / 2;
-  }
-
-  predisplay() {
-    console.log('I will be centered!')
-  }
-
-  postdisplay() {
-    console.log('i was centered!!!')
-  }
-}
-
-class ItemTinted extends ItemRandomImage {
-  constructor() {
-    super()
-    this.tint = random(['blue', 'yellow', 'red', 'orange'])
-  }
-  predisplay() {
-    tint(this.tint)
-  }
-
-  postdisplay() {
-    tint('white')
-  }
-}
-
-class ItemMasked extends ItemRandomImage {
-  constructor() {
-    super()
-    let customMask = createGraphics(this.image.width, this.image.height);
-    customMask.noStroke();
-    customMask.fill(255);
-    customMask.circle(this.image.width / 2, this.image.height / 2, this.image.width);
-    this.image.mask(customMask);
-    // imageMode(CENTER);
-  }
-}
