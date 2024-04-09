@@ -25,10 +25,13 @@ const itemModes = {
   Center: "center",
   Tinted: 'tinted',
   Circle: 'circle',
-  Masked: 'masked'
+  Masked: 'masked',
+  TextMasked: 'textMasked'
 };
 let itemMode = itemModes.Mixed;
 
+// TODO: wouldn't have to pre-load if we do some other shennigans
+// load them and add as they have been loaded
 function preload() {
   for (let i = 0; i <= 13; i++) {
     let fname = `./assets/backgrounds/background.${i.toString().padStart(5, "0")}.jpeg`;
@@ -93,11 +96,13 @@ function setup() {
   // text('... loading images ...', width/2, height / 2)
 
   reset();
+  getCollageItems()
   makeCollage();
 }
 
-const pickBackground = () => {
-  backgroundMode = random(Object.values(backgroundModes));
+const setBackground = (mode) => {
+  backgroundMode = mode;
+  console.log(backgroundMode)
   switch (backgroundMode) {
     case backgroundModes.Image:
       backgroundImage = random(backgrounds);
@@ -107,6 +112,16 @@ const pickBackground = () => {
     default:
       backgroundColor = color(random(255), random(255), random(255));
       break;
+  }
+};
+
+const pickBackground = () => {
+  backgroundMode = random(Object.values(backgroundModes));
+  setBackground(backgroundMode)
+  if (backgroundImage) {
+    createCanvas(backgroundImage.width, backgroundImage.height);
+  } else {
+    createCanvas(defaultSize.width, defaultSize.height);
   }
 };
 
@@ -132,17 +147,25 @@ const renderBackground = () => {
 const reset = () => {
   namer = filenamer(datestring());
   pickBackground();
-  if (backgroundImage) {
-    createCanvas(backgroundImage.width, backgroundImage.height);
-  } else {
-    createCanvas(defaultSize.width, defaultSize.height);
-  }
+  getCollageItems()
+  // if (backgroundImage) {
+  //   createCanvas(backgroundImage.width, backgroundImage.height);
+  // } else {
+  //   createCanvas(defaultSize.width, defaultSize.height);
+  // }
 };
 
 function makeCollage() {
   blendMode(BLEND);
   clear();
   renderBackground();
+
+  // getCollageItems()
+
+  items.forEach((item) => item.display());
+}
+
+const getCollageItems = () => {
   let totalItems = random(minElements, maxElements);
 
   // item picks the image
@@ -153,11 +176,11 @@ function makeCollage() {
   for (let i = 0; i < totalItems; i++) {
     items.push(getItem(itemMode));
   }
-
-  items.forEach((item) => item.display());
 }
 
+
 const getItem = (itemMode) => {
+  // const mode = itemModes.TextMasked
   const mode = (itemMode === itemModes.Mixed)
     ? random(Object.values(itemModes))
     : itemMode
@@ -174,6 +197,9 @@ const getItem = (itemMode) => {
 
     case itemModes.Masked:
       return new ItemMasked()
+
+    case itemModes.TextMasked:
+      return new ItemTextMasked()
 
     case itemModes.Random:
     default:
@@ -192,19 +218,24 @@ function keyPressed() {
 }
 
 function keyTyped() {
+  if (key === "b") {
+    pickBackground();
+  }
   if (key === "d") {
-    makeCollage();
+    // default action
   } else if (key === "s") {
     saveCanvas(namer(), "png");
+    return false;
   } else if (key === "r") {
     reset();
-    makeCollage();
   } else if (key === "i") {
     const modeIndex = Object.values(itemModes).indexOf(itemMode);
     const nextIndex = (modeIndex + 1) % Object.keys(itemModes).length;
     itemMode = Object.values(itemModes)[nextIndex];
-    makeCollage();
+  } else if (key === 'o') {
+    getCollageItems()
   }
+  makeCollage();
   return false
 }
 
